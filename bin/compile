@@ -54,8 +54,11 @@ $miniconda_installer -b -p $conda_temp
 rm $miniconda_installer
 export PATH=$PATH:$conda_temp/bin
 
+echo "---> Installing mamba"
+conda install -c conda-forge -n root mamba -y
+
 echo "---> Updating environment"
-conda update --yes --quiet --all
+mamba update --yes --quiet --all
 
 # check $ENVIRONMENT_YML for alternative environment.yml
 if [ -z "$ENVIRONMENT_YML" ]; then 
@@ -64,14 +67,14 @@ else
 	environmentYMLPath="$build/$ENVIRONMENT_YML"
 fi
 echo "-----> Installing Dependencies using $environmentYMLPath"
-conda env update -n root -f "$environmentYMLPath"
+mamba env update -n root -f "$environmentYMLPath"
 
 echo "-----> Listing Python Environment Information..."
 conda list
 
 echo "-----> Add additional environment.yml..."
 if [ ! -z "$ADDITIONAL_ENVIRONMENT_YML" ]; then
-	conda env create -f $build/$ADDITIONAL_ENVIRONMENT_YML
+	mamba env create -f $build/$ADDITIONAL_ENVIRONMENT_YML
 fi
 
 echo "-----> Cleaning Python Environment..."
