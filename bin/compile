@@ -21,8 +21,12 @@ curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/mi
 
 export MAMBA_ROOT_PREFIX="$build/.micromamba"
 mkdir -p $MAMBA_ROOT_PREFIX
-eval "$(./bin/micromamba shell hook -s posix)"
-export PATH="$build/bin:$PATH"
+./bin/micromamba shell init -s bash -p $MAMBA_ROOT_PREFIX
+source $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
+
+echo "---> Configuring channels..."
+micromamba config append channels conda-forge
+micromamba config set channel_priority strict
 
 echo "---> Creating and activating the environment"
 micromamba create -y -p $MAMBA_ROOT_PREFIX/envs/myenv python=3.11
