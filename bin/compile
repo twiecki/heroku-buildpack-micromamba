@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
-# Cloud Foundry Micromamba Buildpack
-# [License and copyright details]
-
 set -eo pipefail
 
 echo "-----> Retrieve environment variables"
 ENV_DIR=$3
 for KEY in ENVIRONMENT_YML ADDITIONAL_ENVIRONMENT_YML; do
-  [ -f $ENV_DIR/$KEY ] && export "$KEY=$(cat $ENV_DIR/$KEY)" 
+  [ -f $ENV_DIR/$KEY ] && export "$KEY=$(cat $ENV_DIR/$KEY)"
 done
 [ -z "$ENVIRONMENT_YML" ] || echo "ENVIRONMENT_YML: $ENVIRONMENT_YML"
 [ -z "$ADDITIONAL_ENVIRONMENT_YML" ] || echo "ADDITIONAL_ENVIRONMENT_YML: $ADDITIONAL_ENVIRONMENT_YML"
@@ -17,57 +14,58 @@ mkdir -p "$1" "$2"
 build=$(cd "$1/" && pwd)
 cache=$(cd "$2/" && pwd)
 
-micromamba_temp="$HOME/.micromamba"
-# fix cloudfoundry path issues
-if [ "$HOME" == "/home/vcap" ]; then micromamba_temp="$HOME/app/.micromamba"; fi
-
 echo "-----> Preparing Python Environment..."
 
 echo "---> Downloading and installing Micromamba..."
-curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba -C $micromamba_temp
-export PATH=$PATH:$micromamba_temp/bin
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+
+export MAMBA_ROOT_PREFIX="$build/.micromamba"
+mkdir -p $MAMBA_ROOT_PREFIX
+eval "$(./bin/micromamba shell hook -s posix)"
+export PATH="$build/bin:$PATH"
 
 echo "---> Creating and activating the environment"
+micromamba create -y -p $MAMBA_ROOT_PREFIX/envs/myenv python=3.8
+micromamba activate $MAMBA_ROOT_PREFIX/envs/myenv
+
 # check $ENVIRONMENT_YML for alternative environment.yml
 if [ -z "$ENVIRONMENT_YML" ]; then 
     environmentYMLPath="$build/environment.yml"
 else
     environmentYMLPath="$build/$ENVIRONMENT_YML"
 fi
-micromamba create -n myenv -f "$environmentYMLPath" -y
-micromamba activate myenv
-
 echo "-----> Installing Dependencies using $environmentYMLPath"
+micromamba install -y -f "$environmentYMLPath" -p $MAMBA_ROOT_PREFIX/envs/myenv
 
 echo "-----> Listing Python Environment Information..."
-micromamba list
+micromamba list -p $MAMBA_ROOT_PREFIX/envs/myenv
 
 echo "-----> Add additional environment.yml..."
 if [ ! -z "$ADDITIONAL_ENVIRONMENT_YML" ]; then
-    micromamba create -n additional_env -f $build/$ADDITIONAL_ENVIRONMENT_YML -y
+    micromamba create -y -f $build/$ADDITIONAL_ENVIRONMENT_YML -p $MAMBA_ROOT_PREFIX/envs/additional_env
 fi
 
 echo "-----> Cleaning Python Environment..."
-micromamba clean --all --yes
+micromamba clean --tarballs
 
 echo "-----> Copy to staging area"
-micromamba_build="$build/.micromamba"
-if [ -e $micromamba_build ]; then rm -rf $micromamba_build; fi
-mkdir -p $micromamba_build
-cp -a $micromamba_temp/* $micromamba_build/
+conda_build="$build/.micromamba"
+if [ -e $conda_build ]; then rm -rf $conda_build; fi
+mkdir -p $conda_build
+cp -a $MAMBA_ROOT_PREFIX/* $conda_build/
 
 echo "-----> Finished compile step"
 
 echo "-----> Create .profile.d"
 mkdir -p $build/.profile.d
 cat <<-'EOF' > $build/.profile.d/micromamba.sh
-# append to path variable
-export PATH=$HOME/.micromamba/bin:$PATH
-micromamba activate myenv
+    # append to path variable
+    export PATH=$HOME/.micromamba/bin:$PATH
+    source activate $MAMBA_ROOT_PREFIX/envs/myenv
 
-# set default encoding to UTF-8
-export LC_ALL=C.UTF-8
-export LANG=C.UTF-8  
+    # set default encoding to UTF-8
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8  
 EOF
 
 echo "-----> Purging cache"
