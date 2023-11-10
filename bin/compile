@@ -25,7 +25,7 @@ eval "$(./bin/micromamba shell hook -s posix)"
 export PATH="$build/bin:$PATH"
 
 echo "---> Creating and activating the environment"
-micromamba create -y -p $MAMBA_ROOT_PREFIX/envs/myenv python=3.8
+micromamba create -y -p $MAMBA_ROOT_PREFIX/envs/myenv python=3.11
 micromamba activate $MAMBA_ROOT_PREFIX/envs/myenv
 
 # check $ENVIRONMENT_YML for alternative environment.yml
