@@ -50,27 +50,4 @@ if [ ! -z "$ADDITIONAL_ENVIRONMENT_YML" ]; then
 fi
 
 echo "-----> Cleaning Python Environment..."
-micromamba clean --tarballs
-
-echo "-----> Copy to staging area"
-conda_build="$build/.micromamba"
-if [ -e $conda_build ]; then rm -rf $conda_build; fi
-mkdir -p $conda_build
-cp -a $MAMBA_ROOT_PREFIX/* $conda_build/
-
-echo "-----> Finished compile step"
-
-echo "-----> Create .profile.d"
-mkdir -p $build/.profile.d
-cat <<-'EOF' > $build/.profile.d/micromamba.sh
-    # append to path variable
-    export PATH=$HOME/.micromamba/bin:$PATH
-    source activate $MAMBA_ROOT_PREFIX/envs/myenv
-
-    # set default encoding to UTF-8
-    export LC_ALL=C.UTF-8
-    export LANG=C.UTF-8  
-EOF
-
-echo "-----> Purging cache"
-rm -rf $cache/*
+micromamba clean -a -y
