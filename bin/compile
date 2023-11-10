@@ -22,7 +22,6 @@ curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/mi
 export MAMBA_ROOT_PREFIX="$build/.micromamba"
 mkdir -p $MAMBA_ROOT_PREFIX
 ./bin/micromamba shell init -s bash -p $MAMBA_ROOT_PREFIX
-source $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
 
 echo "---> Configuring channels..."
 micromamba config append channels conda-forge
